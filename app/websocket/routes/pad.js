@@ -71,7 +71,8 @@ exports.addMessage = function(req,res,apis){
 						table : "characters",
 						values : {
 							code : data.charCode,
-							color : "#000000",
+							backgroundColor : "#000000",
+							textColor : "#ffffff",
 							rpCode : data.rpCode
 						}
 					})
