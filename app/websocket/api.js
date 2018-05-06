@@ -1,3 +1,10 @@
+class NoRequester extends Error {
+	constructor() {
+		super("Tried to send something back when there was no sender.")
+		Error.captureStackTrace(this, NoRequester)
+}
+}
+exports.NoRequester = NoRequester;
 exports.create = function(data){
 	return {
 		req     : data.req,
@@ -6,6 +13,10 @@ exports.create = function(data){
 		replyId : data.replyId,
 		data    : data.data,
 		simpleSend : function(data,callBack){
+			if(!this.req){
+				//if this happens, either someone is doing something stupid or weird stuff is happening.
+				throw(new exports.NoRequester);
+			}
 			if(typeof(data) === "object"){
 				data = JSON.stringify(data);
 			}
@@ -21,7 +32,11 @@ exports.create = function(data){
 		},
 		sendMatching : function(userIdList,blackListConnections,message){
 			userIdList.forEach(value=>{
-				const list = this.list[value.userId] || [];
+				let userId = value;
+				if(typeof(userId)==="object"){
+					userId = userId.userId;
+				}
+				const list = this.list[userId] || [];
 				list.forEach(connection=>{
 					if (
 						blackListConnections.every(

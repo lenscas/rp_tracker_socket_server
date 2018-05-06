@@ -4,7 +4,9 @@ exports.start = function(paths,apis){
 	const routes  = require(paths.app+"routes.js");
 	const ws      = require("nodejs-websocket")
 	let server    = ws.createServer(function (conn) {
-		conn.on("text", function (json) {
+		conn.on("text", async function (json) {
+			console.log(  apis.getDBConection);
+			const dbCon = apis.getDBConection();
 			let data;
 			try{
 				data =JSON.parse(json);
@@ -34,14 +36,24 @@ exports.start = function(paths,apis){
 				conn.customData= {};
 				console.log("custom data was not set");
 			}
-			routes.run(data,res,{
-				list : list,
-				db   : apis.getDBConection,
-				http : apis.httpSend
-			});
+			try {
+				await routes.run(data,res,{
+					list  : list,
+					db    : dbCon,
+					rawDB : apis.getDBConection,
+					http  : apis.httpSend
+				})
+			}
+			catch(e){
+				console.error(e)
+				throw(e)
+			}
+			finally{
+				dbCon.release()
+			}
 		})
 		conn.on("close", function (code, reason) {
-			if(conn.customData.userId){
+			if(conn.customData && conn.customData.userId){
 				const oldList = list[conn.customData.userId];
 				const newList = [];
 				oldList.forEach(value=>{
@@ -53,6 +65,9 @@ exports.start = function(paths,apis){
 			}
 			console.log("Connection closed")
 		})
-	}).listen(8001)
+	});
+	server.listen(8001)
+	return api.create({
+		list : list
+	});
 }
-

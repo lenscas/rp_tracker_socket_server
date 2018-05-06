@@ -4,23 +4,58 @@ exports.start = function(config){
 	const db = require(config.config+"db.js");
 	pool = mysql.createPool(db);
 	return function(){
+		let inTransaction    = false;
+		let failedAQuery     = false;
+		let connection       = false;
 		return {
-			connection : false,
-			queu : [],
 			_query : async function(data){
-				return await this.connection.query(data);
+				if(inTransaction && failedAQuery){
+					return false;
+				}
+				try{
+					return await connection.query(data);
+				}
+				catch(e){
+					console.error(e);
+					if(inTransaction){
+						failedAQuery = true;
+					}
+					throw(e)
+				}
 			},
 			query : async function(data){
-				if(!this.connection){
-					console.log("we need to make a connection");
-					await this.getConnection();
+				if(!connection){
+					console.log("??");
+					await this.getConnection();;
 				}
 				return await this._query(data);
 			},
+			beginTransactionAuto : async function(){
+				inTransaction = true
+				return await this.beginTransaction();
+			},
+			beginTransaction : async function(){
+				await connection.beginTransaction();
+				return this;
+			},
+			endTransactionAuto : async function(){
+				inTransaction = false;
+				await this.endTransaction(!failedAQuery);
+				failedAQuery  = false;
+			},
+			endTransaction : async function(success=true){
+				if(success){
+					await connection.commit();
+				} else {
+					await connection.rollback();
+				}
+				return this;
+			},
+			setAutoTransactionStatus : function(status){
+				failedAQuery = status
+			},
 			getConnection : async function(){
-				console.log("start making a connection");
-				this.connection = await pool.getConnection();
-				console.log("done making a connection");
+				connection = await pool.getConnection();
 			},
 			simpleInsert : async function(data){
 				const queryData = {
@@ -38,11 +73,10 @@ exports.start = function(config){
 				return await this.query(queryData);
 			},
 			release : function(){
-				if(this.connection){
-					pool.releaseConnection(this.connection);
-					this.connection = null;
+				if(connection){
+					pool.releaseConnection(connection);
+					connection = null;
 				}
-				
 			}
 		}
 

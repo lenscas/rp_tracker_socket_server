@@ -8,16 +8,15 @@ exports.getPad = async function(req,res,other){
 		});
 		return;
 	}
-	
-	let db = other.db();
+	let db = other.db;
 	const messages = await db.query({
-		sql : `SELECT 
+		sql : `SELECT
 				messages.createDate,
 				messages.text,
 				characters.code,
 				characters.textColor,
 				characters.backgroundColor
-			FROM messages 
+			FROM messages
 			INNER JOIN characters
 			ON characters.code = messages.charCode
 			WHERE messages.rpCode = ?
@@ -33,13 +32,12 @@ exports.getPad = async function(req,res,other){
 				text : value.messages.text,
 				textColor : value.characters.textColor || "#000000",
 				backgroundColor : value.characters.backgroundColor || "#FFFFFF",
-				charCode : value.characters.charCode 
+				charCode : value.characters.charCode
 			})
 	);
 	res.reply({
 		messages : messageList
 	});
-	db.release();
 }
 exports.addMessage = function(req,res,apis){
 	const data = req.data;
@@ -60,7 +58,7 @@ exports.addMessage = function(req,res,apis){
 		url  : "rp/"+data.rpCode+"/characters/"+data.charCode+"/userId",
 		callBack : async (httpData) =>{
 			if(httpData.data.userId===res.req.customData.userId){
-				const db = apis.db();
+				const db = apis.rawDB();
 				const result = await db.query({
 					sql : "SELECT code FROM characters WHERE ? LIMIT 1",
 					values : [{code : data.charCode}],
@@ -105,6 +103,5 @@ exports.addMessage = function(req,res,apis){
 				})
 			}
 		}
-			
 	})
 }

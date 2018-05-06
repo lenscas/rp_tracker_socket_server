@@ -10,8 +10,6 @@ exports.register = function(req,res,apis){
 	apis.http.get({
 		url  : "socket/check/users/"+validateUser,
 		callBack : (data) =>{
-			console.log("in callback");
-			console.log(data);
 			let replyData = {
 				success : true,
 				message : "Successfully logged in"
